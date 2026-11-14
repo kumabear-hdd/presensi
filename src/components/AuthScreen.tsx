@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckSquare, Lock, Moon, Sun, Monitor } from 'lucide-react';
+import { CheckSquare, Eye, EyeOff, Lock, Moon, Sun, Monitor } from 'lucide-react';
 import type { ThemeMode } from '../types/sims';
 
 interface AuthScreenProps {
@@ -28,6 +28,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [showPw2, setShowPw2] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,7 +70,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         <div className="rounded-lg bg-[var(--sf2)] border border-[var(--ln)] px-3 py-2.5 text-xs text-[var(--mu)] mb-4 flex items-start gap-2">
           <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[var(--pri)]" aria-hidden="true" />
           <span>
-            Mode penyimpanan lokal aktif: data tersimpan terenkripsi AES-256-GCM di perangkat ini.
+            Enkripsi AES-256-GCM aktif: data tersimpan terenkripsi dan tersinkron untuk akses lintas perangkat.
           </span>
         </div>
 
@@ -88,30 +90,60 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
           <label className="block text-xs font-semibold text-[var(--mu)]">
             Password
-            <input
-              id="pw"
-              type="password"
-              autoComplete={mode === 'reg' ? 'new-password' : 'current-password'}
-              placeholder="Minimal 8 karakter"
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-[var(--ln)] bg-[var(--sf)] px-3 py-2 text-sm text-[var(--ink)] font-medium focus:outline-none focus:border-[var(--pri)] focus:ring-2 focus:ring-[var(--pri-b)]"
-            />
+            <div className="relative mt-1.5">
+              <input
+                id="pw"
+                type={showPw ? 'text' : 'password'}
+                autoComplete={mode === 'reg' ? 'new-password' : 'current-password'}
+                placeholder="Minimal 8 karakter"
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                className="w-full rounded-lg border border-[var(--ln)] bg-[var(--sf)] pl-3 pr-10 py-2 text-sm text-[var(--ink)] font-medium focus:outline-none focus:border-[var(--pri)] focus:ring-2 focus:ring-[var(--pri-b)]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                aria-label={showPw ? 'Sembunyikan password' : 'Lihat password'}
+                aria-pressed={showPw}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md flex items-center justify-center text-[var(--mu)] hover:text-[var(--ink)] hover:bg-[var(--sf2)] transition cursor-pointer"
+              >
+                {showPw ? (
+                  <EyeOff className="w-4 h-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="w-4 h-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
           </label>
 
           {mode === 'reg' && (
             <>
               <label className="block text-xs font-semibold text-[var(--mu)]">
                 Ulangi password
-                <input
-                  id="pw2"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Ketik ulang password"
-                  value={pw2}
-                  onChange={(e) => setPw2(e.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-[var(--ln)] bg-[var(--sf)] px-3 py-2 text-sm text-[var(--ink)] font-medium focus:outline-none focus:border-[var(--pri)] focus:ring-2 focus:ring-[var(--pri-b)]"
-                />
+                <div className="relative mt-1.5">
+                  <input
+                    id="pw2"
+                    type={showPw2 ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="Ketik ulang password"
+                    value={pw2}
+                    onChange={(e) => setPw2(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--ln)] bg-[var(--sf)] pl-3 pr-10 py-2 text-sm text-[var(--ink)] font-medium focus:outline-none focus:border-[var(--pri)] focus:ring-2 focus:ring-[var(--pri-b)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw2((v) => !v)}
+                    aria-label={showPw2 ? 'Sembunyikan ulangi password' : 'Lihat ulangi password'}
+                    aria-pressed={showPw2}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md flex items-center justify-center text-[var(--mu)] hover:text-[var(--ink)] hover:bg-[var(--sf2)] transition cursor-pointer"
+                  >
+                    {showPw2 ? (
+                      <EyeOff className="w-4 h-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="w-4 h-4" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
               </label>
               <div className="rounded-lg bg-[var(--sf2)] border border-[var(--ln)] px-3 py-2 text-xs text-[var(--mu)]">
                 Password tidak dapat dipulihkan jika lupa karena enkripsi bersifat{' '}

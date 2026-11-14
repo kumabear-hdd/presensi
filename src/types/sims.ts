@@ -10,6 +10,8 @@ export type DataSubTab = 'st' | 'gr' | 'kl';
 
 export type SuratFilter = 'miss' | 'arc';
 
+export type RecapPeriod = 'day' | 'week' | 'month';
+
 export interface Signatory {
   n: string;
   nip: string;

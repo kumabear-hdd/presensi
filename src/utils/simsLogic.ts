@@ -6,6 +6,7 @@ import type {
   ExtraEntry,
   MonthData,
   MonthMap,
+  RecapPeriod,
   RecapResult,
   Student,
   Teacher,
@@ -347,15 +348,40 @@ export const createSeedData = (
   return { core, months, touchedMonths: [...touchedSet] };
 };
 
+export const shiftMonth = (ymStr: string, delta: number): string => {
+  const [y, m] = ymStr.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+};
+
+export const getRecapDates = (
+  refDateStr: string,
+  period: RecapPeriod = 'week'
+): string[] => {
+  if (period === 'day') return [refDateStr];
+  if (period === 'month') {
+    const [y, m] = refDateStr.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    const dates: string[] = [];
+    for (let day = 1; day <= lastDay; day++) {
+      const d = new Date(y, m - 1, day);
+      if (d.getDay() !== 0) dates.push(formatDate(d));
+    }
+    return dates;
+  }
+  const ref = parseDate(refDateStr);
+  const monday = addDays(ref, -((ref.getDay() + 6) % 7));
+  return [0, 1, 2, 3, 4, 5].map((i) => formatDate(addDays(monday, i)));
+};
+
 export const buildRecap = (
   core: CoreData,
   months: MonthMap,
   classId: number,
-  refDateStr: string
+  refDateStr: string,
+  period: RecapPeriod = 'week'
 ): RecapResult => {
-  const ref = parseDate(refDateStr);
-  const monday = addDays(ref, -((ref.getDay() + 6) % 7));
-  const W = [0, 1, 2, 3, 4, 5].map((i) => formatDate(addDays(monday, i)));
+  const W = getRecapDates(refDateStr, period);
 
   const rows = core.st
     .filter((s) => !classId || s.c === classId)
@@ -393,14 +419,23 @@ export const buildRecap = (
   };
 };
 
-export const buildRecapTsv = (core: CoreData, recap: RecapResult): string => {
+export const buildRecapTsv = (
+  core: CoreData,
+  recap: RecapResult,
+  period: RecapPeriod = 'week'
+): string => {
+  const dateHeaders =
+    period === 'month'
+      ? recap.W.map((d) => `${Number(d.slice(8))}/${Number(d.slice(5, 7))}`)
+      : recap.W.map(dayLabel);
+
   const headers = [
     'No',
     'NIS',
     'Nama Siswa',
     'L/P',
     'Ruangan Kelas',
-    ...recap.W.map(dayLabel),
+    ...dateHeaders,
     'Hadir (H)',
     'Sakit (S)',
     'Izin (I)',
@@ -427,5 +462,12 @@ export const buildRecapTsv = (core: CoreData, recap: RecapResult): string => {
     )
     .join('\n');
 
-  return `${core.s.nama}\tLaporan Mingguan ${recap.W[0]} sampai ${recap.W[5]}\n\n${headers.join('\t')}\n${body}`;
+  const periodTitle =
+    period === 'day'
+      ? `Laporan Harian ${recap.W[0]}`
+      : period === 'month'
+        ? `Laporan Bulanan ${formatLocaleDate(recap.W[0], { month: 'long', year: 'numeric' })}`
+        : `Laporan Mingguan ${recap.W[0]} sampai ${recap.W[recap.W.length - 1]}`;
+
+  return `${core.s.nama}\t${periodTitle}\n\n${headers.join('\t')}\n${body}`;
 };

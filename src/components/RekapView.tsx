@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Copy, Printer } from 'lucide-react';
-import type { CoreData, MonthMap } from '../types/sims';
+import type { CoreData, MonthMap, RecapPeriod } from '../types/sims';
 import {
   addDays,
   buildRecap,
@@ -14,6 +14,7 @@ import {
   getJakartaNow,
   pad2,
   parseDate,
+  shiftMonth,
 } from '../utils/simsLogic';
 
 interface RekapViewProps {
@@ -22,6 +23,12 @@ interface RekapViewProps {
   todayStr: string;
   onNotify: (text: string, bad?: boolean) => void;
 }
+
+const PERIOD_OPTIONS: Array<{ id: RecapPeriod; label: string }> = [
+  { id: 'day', label: 'Harian' },
+  { id: 'week', label: 'Mingguan' },
+  { id: 'month', label: 'Bulanan' },
+];
 
 async function copyTextToClipboard(text: string): Promise<boolean> {
   try {
@@ -50,6 +57,7 @@ export const RekapView: React.FC<RekapViewProps> = ({
   todayStr,
   onNotify,
 }) => {
+  const [period, setPeriod] = useState<RecapPeriod>('week');
   const [classId, setClassId] = useState(0);
   const [refDate, setRefDate] = useState(todayStr);
 
@@ -64,7 +72,7 @@ export const RekapView: React.FC<RekapViewProps> = ({
     );
   }
 
-  const recap = buildRecap(core, months, classId, refDate);
+  const recap = buildRecap(core, months, classId, refDate, period);
   const s = core.s;
   const now = getJakartaNow();
   const shortDate = (idx: number) =>
@@ -73,22 +81,54 @@ export const RekapView: React.FC<RekapViewProps> = ({
       month: 'short',
       year: 'numeric',
     });
+  const monthYm = refDate.slice(0, 7);
+  const monthLabel = formatLocaleDate(`${monthYm}-01`, {
+    month: 'long',
+    year: 'numeric',
+  });
   const scopeLabel = classId ? getClassName(core, classId) : 'Seluruh Siswa Sekolah';
 
-  const headers = [
-    'No',
-    'NIS',
-    'Nama Siswa',
-    'L/P',
-    'Ruangan Kelas',
-    ...recap.W.map(dayLabel),
-    'Hadir (H)',
-    'Sakit (S)',
-    'Izin (I)',
-    'Alpa (A)',
-    'Total Hari',
-    '% Kehadiran',
-  ];
+  const headingTitle =
+    period === 'day'
+      ? 'Rekap Absensi Harian'
+      : period === 'month'
+        ? 'Rekap Absensi Bulanan'
+        : 'Rekap Absensi Mingguan';
+  const categoryLabel =
+    period === 'day'
+      ? 'Laporan Harian'
+      : period === 'month'
+        ? 'Laporan Bulanan'
+        : 'Laporan Mingguan';
+  const periodSubtitle =
+    period === 'day'
+      ? formatLongDate(recap.W[0])
+      : period === 'month'
+        ? `${monthLabel} (${recap.W.length} hari sekolah)`
+        : `${shortDate(0)} – ${shortDate(recap.W.length - 1)}`;
+  const sheetPeriodCell =
+    period === 'day'
+      ? `Harian (${formatLongDate(recap.W[0])})`
+      : period === 'month'
+        ? `Bulanan (${monthLabel})`
+        : `Mingguan (${shortDate(0)} - ${shortDate(recap.W.length - 1)})`;
+
+  const navLabels =
+    period === 'day'
+      ? { prev: 'Hari lalu', current: 'Hari ini' }
+      : period === 'month'
+        ? { prev: 'Bulan lalu', current: 'Bulan ini' }
+        : { prev: 'Minggu lalu', current: 'Minggu ini' };
+
+  const handleStep = (delta: number) => {
+    if (period === 'day') {
+      setRefDate(formatDate(addDays(parseDate(refDate), delta)));
+    } else if (period === 'month') {
+      setRefDate(`${shiftMonth(monthYm, delta)}-01`);
+    } else {
+      setRefDate(formatDate(addDays(parseDate(refDate), delta * 7)));
+    }
+  };
 
   const signatories = [
     ['Mengetahui / Mengesahkan:', 'Kepala Sekolah,', s.kepsek],
@@ -98,7 +138,7 @@ export const RekapView: React.FC<RekapViewProps> = ({
   ] as const;
 
   const handleCopy = async () => {
-    const tsv = buildRecapTsv(core, recap);
+    const tsv = buildRecapTsv(core, recap, period);
     const ok = await copyTextToClipboard(tsv);
     onNotify(
       ok
@@ -108,15 +148,20 @@ export const RekapView: React.FC<RekapViewProps> = ({
     );
   };
 
+  const sheetClass =
+    period === 'month'
+      ? 'sims-sheet is-monthly shadow-sm'
+      : period === 'day'
+        ? 'sims-sheet is-daily shadow-sm'
+        : 'sims-sheet shadow-sm';
+
   return (
     <div className="space-y-4">
       <div className="no-print flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">
-            Rekap Absensi Mingguan
-          </h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">{headingTitle}</h1>
           <p className="text-sm text-[var(--mu)]">
-            Periode {shortDate(0)} – {shortDate(5)} · {scopeLabel}
+            Periode {periodSubtitle} · {scopeLabel}
           </p>
         </div>
 
@@ -141,6 +186,35 @@ export const RekapView: React.FC<RekapViewProps> = ({
       </div>
 
       <div className="no-print flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-[var(--mu)]">Periode Rekap</span>
+          <div
+            role="tablist"
+            aria-label="Periode rekap"
+            className="inline-flex min-h-[40px] rounded-lg border border-[var(--ln)] bg-[var(--sf)] p-1 gap-1"
+          >
+            {PERIOD_OPTIONS.map((opt) => {
+              const active = period === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setPeriod(opt.id)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-semibold cursor-pointer whitespace-nowrap ${
+                    active
+                      ? 'bg-[var(--pri-btn)] text-white shadow-xs'
+                      : 'text-[var(--mu)] hover:text-[var(--ink)] hover:bg-[var(--sf2)]'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <label className="flex flex-col gap-1 text-xs font-semibold text-[var(--mu)]">
           Kelas
           <select
@@ -157,37 +231,51 @@ export const RekapView: React.FC<RekapViewProps> = ({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-semibold text-[var(--mu)]">
-          Minggu yang memuat tanggal
-          <input
-            type="date"
-            value={refDate}
-            onChange={(e) => {
-              if (e.target.value) setRefDate(e.target.value);
-            }}
-            className="min-h-[40px] rounded-lg border border-[var(--ln)] bg-[var(--sf)] px-3 py-2 text-sm text-[var(--ink)]"
-          />
-        </label>
+        {period === 'month' ? (
+          <label className="flex flex-col gap-1 text-xs font-semibold text-[var(--mu)]">
+            Bulan
+            <input
+              type="month"
+              value={monthYm}
+              onChange={(e) => {
+                if (e.target.value) setRefDate(`${e.target.value}-01`);
+              }}
+              className="min-h-[40px] rounded-lg border border-[var(--ln)] bg-[var(--sf)] px-3 py-2 text-sm text-[var(--ink)]"
+            />
+          </label>
+        ) : (
+          <label className="flex flex-col gap-1 text-xs font-semibold text-[var(--mu)]">
+            {period === 'day' ? 'Tanggal' : 'Minggu yang memuat tanggal'}
+            <input
+              type="date"
+              value={refDate}
+              onChange={(e) => {
+                if (e.target.value) setRefDate(e.target.value);
+              }}
+              className="min-h-[40px] rounded-lg border border-[var(--ln)] bg-[var(--sf)] px-3 py-2 text-sm text-[var(--ink)]"
+            />
+          </label>
+        )}
 
         <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
-            onClick={() => setRefDate(formatDate(addDays(parseDate(refDate), -7)))}
+            onClick={() => handleStep(-1)}
             className="inline-flex items-center gap-1 min-h-[40px] rounded-lg border border-[var(--ln)] bg-[var(--sf)] text-[var(--ink)] px-3 py-2 text-sm font-semibold hover:bg-[var(--sf2)] transition cursor-pointer whitespace-nowrap"
           >
             <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-            <span>Minggu lalu</span>
+            <span>{navLabels.prev}</span>
           </button>
           <button
             type="button"
             onClick={() => setRefDate(todayStr)}
             className="min-h-[40px] rounded-lg border border-[var(--ln)] bg-[var(--sf)] text-[var(--ink)] px-3 py-2 text-sm font-semibold hover:bg-[var(--sf2)] transition cursor-pointer whitespace-nowrap"
           >
-            Minggu ini
+            {navLabels.current}
           </button>
           <button
             type="button"
-            onClick={() => setRefDate(formatDate(addDays(parseDate(refDate), 7)))}
+            onClick={() => handleStep(1)}
             className="inline-flex items-center gap-1 min-h-[40px] rounded-lg border border-[var(--ln)] bg-[var(--sf)] text-[var(--ink)] px-3 py-2 text-sm font-semibold hover:bg-[var(--sf2)] transition cursor-pointer whitespace-nowrap"
           >
             <span>Berikutnya</span>
@@ -196,7 +284,7 @@ export const RekapView: React.FC<RekapViewProps> = ({
         </div>
       </div>
 
-      <div className="sims-sheet shadow-sm">
+      <div className={sheetClass}>
         <div className="kop">
           <b>{s.nama || 'Nama sekolah belum diisi'}</b>
           <div>{s.alamat}</div>
@@ -212,15 +300,13 @@ export const RekapView: React.FC<RekapViewProps> = ({
             </tr>
             <tr>
               <td>Kategori</td>
-              <td>Laporan Mingguan</td>
+              <td>{categoryLabel}</td>
               <td>Cakupan</td>
               <td>{scopeLabel}</td>
             </tr>
             <tr>
               <td>Periode</td>
-              <td>
-                Mingguan ({shortDate(0)} - {shortDate(5)})
-              </td>
+              <td>{sheetPeriodCell}</td>
               <td>Tanggal Cetak</td>
               <td>
                 {formatLongDate(formatDate(now))} (Pukul {pad2(now.getHours())}.
@@ -239,9 +325,29 @@ export const RekapView: React.FC<RekapViewProps> = ({
         <table>
           <thead>
             <tr>
-              {headers.map((h) => (
-                <th key={h}>{h}</th>
-              ))}
+              <th>No</th>
+              <th>NIS</th>
+              <th>Nama Siswa</th>
+              <th>L/P</th>
+              <th>Ruangan Kelas</th>
+              {recap.W.map((d) =>
+                period === 'month' ? (
+                  <th key={d} className="col-day" title={dayLabel(d)}>
+                    <div>{Number(d.slice(8))}</div>
+                    <div className="text-[10px] font-normal opacity-85">
+                      {dayLabel(d).split(' ')[0]}
+                    </div>
+                  </th>
+                ) : (
+                  <th key={d}>{dayLabel(d)}</th>
+                )
+              )}
+              <th>Hadir (H)</th>
+              <th>Sakit (S)</th>
+              <th>Izin (I)</th>
+              <th>Alpa (A)</th>
+              <th>Total Hari</th>
+              <th>% Kehadiran</th>
             </tr>
           </thead>
           <tbody>

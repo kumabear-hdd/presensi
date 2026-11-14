@@ -9,6 +9,7 @@ import {
   formatDate,
   generateAutoNis,
   getMissingDocs,
+  getRecapDates,
   getStatus,
   inferGender,
   isWeekday,
@@ -18,6 +19,7 @@ import {
   prevSchoolDay,
   purgeStudentAttendance,
   putAttendance,
+  shiftMonth,
 } from './simsLogic';
 import {
   deriveAesKey,
@@ -131,6 +133,47 @@ test('buildRecap and buildRecapTsv aggregate weekly attendance and preserve NIS 
   const tsv = buildRecapTsv(core, recap);
   assert.ok(tsv.includes("'26001001"));
   assert.ok(tsv.includes('75%'));
+  assert.ok(tsv.includes('Laporan Mingguan 2026-11-09 sampai 2026-11-14'));
+});
+
+test('shiftMonth, getRecapDates, buildRecap, and buildRecapTsv support day and month periods', () => {
+  assert.equal(shiftMonth('2026-01', -1), '2025-12');
+  assert.equal(shiftMonth('2026-12', 1), '2027-01');
+
+  assert.deepEqual(getRecapDates('2026-11-11', 'day'), ['2026-11-11']);
+
+  const novDates = getRecapDates('2026-11-11', 'month');
+  // Nov 2026 has 30 days, 5 Sundays (1, 8, 15, 22, 29) -> 25 school days (Mon-Sat)
+  assert.equal(novDates.length, 25);
+  assert.equal(novDates[0], '2026-11-02');
+  assert.equal(novDates[novDates.length - 1], '2026-11-30');
+  assert.ok(novDates.every((d) => parseDate(d).getDay() !== 0));
+
+  const core = createEmptyCoreData();
+  core.s.nama = 'SMA Nusantara';
+  core.c = [{ id: 1, n: 'X Ikhwan 1', w: null }];
+  core.st = [{ id: 1, n: 'Andi', nis: '26001001', g: 'L', c: 1 }];
+  const months: MonthMap = {};
+  putAttendance(months, 1, '2026-11-02', 'H');
+  putAttendance(months, 1, '2026-11-11', 'S');
+  putAttendance(months, 1, '2026-11-30', 'H');
+
+  const dayRecap = buildRecap(core, months, 1, '2026-11-11', 'day');
+  assert.equal(dayRecap.W.length, 1);
+  assert.equal(dayRecap.rows[0].c.S, 1);
+  assert.equal(dayRecap.rows[0].p, 0);
+  const dayTsv = buildRecapTsv(core, dayRecap, 'day');
+  assert.ok(dayTsv.includes('Laporan Harian 2026-11-11'));
+
+  const monthRecap = buildRecap(core, months, 1, '2026-11-11', 'month');
+  assert.equal(monthRecap.W.length, 25);
+  assert.equal(monthRecap.rows[0].c.H, 2);
+  assert.equal(monthRecap.rows[0].c.S, 1);
+  assert.equal(monthRecap.rows[0].t, 3);
+  assert.equal(monthRecap.days, 3);
+  const monthTsv = buildRecapTsv(core, monthRecap, 'month');
+  assert.ok(monthTsv.includes('Laporan Bulanan'));
+  assert.ok(monthTsv.includes('\t2/11\t'));
 });
 
 test('WebCrypto PBKDF2 + AES-GCM sealPayload/openPayload roundtrip works', async () => {
