@@ -77,15 +77,44 @@ export async function hashAccountId(email: string): Promise<string> {
     .join('');
 }
 
+// Cloud Storage API proxy helper for multi-device sync
 export const simsStorage = {
   async get<T>(collection: string, id: string): Promise<T | null> {
+    try {
+      const res = await fetch(`/api/storage/${collection}/${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        return json.data ?? null;
+      }
+    } catch {}
+    // Fallback to localStorage
     const raw = localStorage.getItem(`sims:${collection}/${id}`);
     return raw ? (JSON.parse(raw) as T) : null;
   },
+
   async set<T>(collection: string, id: string, obj: T): Promise<void> {
     localStorage.setItem(`sims:${collection}/${id}`, JSON.stringify(obj));
+    try {
+      await fetch(`/api/storage/${collection}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: obj }),
+      });
+    } catch {}
   },
+
   async list<T>(collection: string): Promise<Array<[string, T]>> {
+    try {
+      const res = await fetch(`/api/storage/${collection}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.rows && Array.isArray(json.rows)) {
+          return json.rows;
+        }
+      }
+    } catch {}
+
+    // Fallback to localStorage listing
     const prefix = `sims:${collection}/`;
     const rows: Array<[string, T]> = [];
     for (let k = 0; k < localStorage.length; k++) {
@@ -99,7 +128,16 @@ export const simsStorage = {
     }
     return rows;
   },
+
   async hasAnyAccount(): Promise<boolean> {
+    try {
+      const res = await fetch('/api/storage/accts-check');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.hasAny) return true;
+      }
+    } catch {}
+
     return Object.keys(localStorage).some((k) => k.startsWith('sims:accts/'));
   },
 };
