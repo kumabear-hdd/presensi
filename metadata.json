@@ -1,0 +1,6 @@
+{
+  "name": "SIMS Absensi",
+  "description": "Sistem Presensi Sekolah & Arsip Surat Siswa terenkripsi dengan rekap mingguan standar cetak A4 dan ekspor Excel/Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

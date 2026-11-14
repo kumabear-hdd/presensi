@@ -1,0 +1,236 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #f3f6fa;
+  --sf: #ffffff;
+  --sf2: #f8fafc;
+  --ink: #0f243e;
+  --mu: #5c6f84;
+  --ln: #dce4ee;
+  --ln2: #e8eef5;
+  --pri: #1d4ed8;
+  --pri-btn: #1d4ed8;
+  --pri-b: rgba(29, 78, 216, 0.1);
+  --h: #0f8a5f;
+  --h-btn: #0f8a5f;
+  --hb: rgba(15, 138, 95, 0.12);
+  --s: #c27803;
+  --s-btn: #b45309;
+  --sb: rgba(194, 120, 3, 0.13);
+  --i: #2563eb;
+  --i-btn: #2563eb;
+  --ib: rgba(37, 99, 235, 0.12);
+  --a: #dc2626;
+  --a-btn: #dc2626;
+  --ab: rgba(220, 38, 38, 0.11);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0b1320;
+  --sf: #121e30;
+  --sf2: #17263c;
+  --ink: #e7eef8;
+  --mu: #94a7be;
+  --ln: #24354c;
+  --ln2: #1d2c42;
+  --pri: #60a5fa;
+  --pri-btn: #2563eb;
+  --pri-b: rgba(96, 165, 250, 0.15);
+  --h: #34d399;
+  --h-btn: #047857;
+  --hb: rgba(52, 211, 153, 0.14);
+  --s: #fbbf24;
+  --s-btn: #b45309;
+  --sb: rgba(251, 191, 36, 0.15);
+  --i: #60a5fa;
+  --i-btn: #2563eb;
+  --ib: rgba(96, 165, 250, 0.15);
+  --a: #f87171;
+  --a-btn: #dc2626;
+  --ab: rgba(248, 113, 113, 0.15);
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono-num {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Official Printable A4 Sheet */
+.sims-sheet {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  padding: 20px;
+  overflow-x: auto;
+}
+
+.sims-sheet table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 900px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+}
+
+.sims-sheet th,
+.sims-sheet td {
+  border: 1px solid #cdd5d0;
+  padding: 5px 7px;
+  text-align: center;
+  color: #111827;
+  background: #ffffff;
+}
+
+.sims-sheet th {
+  background: #1f5c45;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.sims-sheet td.l {
+  text-align: left;
+}
+
+.sims-sheet tbody tr:nth-child(even) td {
+  background: #f3f7f4;
+}
+
+.sims-sheet td.st-H {
+  background: #d9f0dc !important;
+  color: #1f6b3a;
+  font-weight: 700;
+}
+
+.sims-sheet td.st-S {
+  background: #fdebc8 !important;
+  color: #8a5a00;
+  font-weight: 700;
+}
+
+.sims-sheet td.st-I {
+  background: #dce6fb !important;
+  color: #25508f;
+  font-weight: 700;
+}
+
+.sims-sheet td.st-A {
+  background: #fbd9d5 !important;
+  color: #a3261b;
+  font-weight: 700;
+}
+
+.sims-sheet td.st-z {
+  color: #9ca3af;
+}
+
+.sims-sheet tr.tot td {
+  background: #e3ece6 !important;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sims-sheet .inf {
+  min-width: 0;
+  margin-bottom: 12px;
+}
+
+.sims-sheet .inf td {
+  border: 0;
+  text-align: left;
+  padding: 2px 8px;
+  background: transparent !important;
+}
+
+.sims-sheet .inf td:nth-child(odd) {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sims-sheet .st {
+  min-width: 0;
+  max-width: 680px;
+}
+
+.sims-sheet .kop {
+  text-align: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #1f5c45;
+}
+
+.sims-sheet .kop b {
+  font-size: 18px;
+  display: block;
+}
+
+.sims-sheet h4 {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sims-sheet .sgs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  text-align: center;
+  margin-top: 14px;
+  font-size: 12.5px;
+  min-width: 700px;
+}
+
+.sims-sheet .sp {
+  height: 58px;
+}
+
+dialog::backdrop {
+  background: rgba(10, 18, 30, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .sims-sheet {
+    border: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+  .sims-sheet table,
+  .sims-sheet .sgs {
+    min-width: 0 !important;
+    font-size: 9.5px !important;
+  }
+}
